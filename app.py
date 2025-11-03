@@ -167,7 +167,7 @@ html_cards = f"""
     ">
         <h2>Anomalía</h2>
         <h1>
-            {"{:.2f}%".format(selected_song['porcentaje_anomalia']) if selected_song["anomaly"] == -1 else "No anómala"}
+            {f"Anómala ({selected_song['porcentaje_anomalia']*100:.3f}%)" if selected_song["anomaly"] == -1 else "No anómala"}
         </h1>
     </div>
 </div>
