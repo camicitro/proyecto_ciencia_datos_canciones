@@ -8,6 +8,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 import streamlit.components.v1 as components
+from sklearn.neighbors import NearestNeighbors
 
 ### Configuración ###
 st.set_page_config(page_title="Explorador de Canciones", layout="wide")
@@ -253,23 +254,25 @@ with col2:
     st.subheader("Características de la canción")
     st.altair_chart(chart_features, use_container_width=True)
 
-### Canciones similares ###
+### Canciones similares usando KNN ###
 st.markdown("---")
 st.subheader("Canciones similares")
 
-columnas_mostrar = ["title", "artist_name", "genre_rosamerica"]
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(df[features])
 
-similares = df[
-    (df["cluster"] == selected_song["cluster"]) &
-    (df["display_name"] != selected_song["display_name"])
-]
+knn = NearestNeighbors(n_neighbors=6)
+knn.fit(X_scaled)
 
-similares = similares.sample(5)
+idx_selected = df.index[df["display_name"] == selected_option][0]
+distancias, indices = knn.kneighbors([X_scaled[idx_selected]])
 
-df_similares_filtrado = similares[columnas_mostrar].rename(columns={
+similares_knn = df.iloc[indices[0][1:]][["title","artist_name","genre_rosamerica","cluster"]]
+similares_knn = similares_knn.rename(columns={
     "title": "Título",
     "artist_name": "Artista",
-    "genre_rosamerica": "Género"
+    "genre_rosamerica": "Género",
+    "cluster": "Cluster"
 })
 
-st.dataframe(df_similares_filtrado, use_container_width=True)
+st.dataframe(similares_knn, use_container_width=True)
