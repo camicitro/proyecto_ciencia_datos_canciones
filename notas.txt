@@ -1,0 +1,7 @@
+- para desactivar el entorno: deactivate
+
+- activar el entorno: venv\Scripts\activate
+
+- guardar las dependencias: pip freeze > requirements.txt
+
+- para ejecutar la app de streamlit: streamlit run app.py
