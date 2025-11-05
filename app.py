@@ -402,6 +402,8 @@ elif page == "Referencias":
             font-size: 1.4em;
         }
     }
+
+    
 </style>
 
 <div class="container-analisis">
@@ -486,8 +488,81 @@ elif page == "Referencias":
             </tbody>
         </table>
     </div>
+    <div class="section">
+        <h2 id="genre-title">Información sobre Géneros Musicales</h2>
+        <p class="intro-text">Los géneros han sido obtenidos de la base de datos de AcousticBrainz y clasificados bajo
+            la taxonomía de Rosamerica. Esta tabla describe las características generales de los géneros predominantes
+            en el dataset:</p>
+        <table class="characteristics-table">
+            <thead>
+                <tr>
+                    <th>Género</th>
+                    <th>Descripción Representativa</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="characteristic-name">Pop</td>
+                    <td>Música popular con estructuras simples, melódica y enfocada en el mainstream. Frecuentemente
+                        asociada al Cluster Movido.</td>
+                </tr>
+                <tr>
+                    <td class="characteristic-name">Rock</td>
+                    <td>Amplia gama de estilos centrados en la guitarra eléctrica, batería y bajo. Puede variar entre
+                        Movido (enérgico) y Tranquilo (baladas o clásico).</td>
+                </tr>
+                <tr>
+                    <td class="characteristic-name">Rhythmic</td>
+                    <td>Géneros con énfasis en ritmos complejos y percusión fuerte, como R&B contemporáneo, a menudo
+                        orientados al baile (Movido).</td>
+                </tr>
+                <tr>
+                    <td class="characteristic-name">Dance</td>
+                    <td>Música electrónica de baile (EDM, House, Techno). Altamente "party" y "danceable" (generalmente se asocian al Cluster
+                        Movido).</td>
+                </tr>
+                <tr>
+                    <td class="characteristic-name">Classic</td>
+                    <td>Música Clásica. Caracterizada por la riqueza tonal, orquestación y valores altos en "relaxed"
+                        (mayoritariamente se asocian al Cluster Tranquilo).</td>
+                </tr>
+                <tr>
+                    <td class="characteristic-name">Jazz</td>
+                    <td>Estilos caracterizados por la improvisación, ritmos sincopados y armonías complejas. Tiende a
+                        ser "relaxed" y "tonal" (suelen presentarse dentro del Cluster Tranquilo).</td>
+                </tr>
+                <tr>
+                    <td class="characteristic-name">Hip-Hop</td>
+                    <td>Música basada en el sampleo y ritmos programados, con un fuerte enfoque en el rap. Usualmente
+                        es bailable y rítmico.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2 id="anomaly-title">Detección y Porcentaje de Anomalías</h2>
+        <div class="pca-components">
+            <div class="pca-card pca-1" style="background: #ffe6e6; border: 1px solid #ffaaaa;">
+                <h3><span class="pca-icon">🚨</span> ¿Qué es una Canción Anómala?</h3>
+                <p>Una canción es considerada anómala cuando sus características musicales (sad, happy,
+                    danceable, etc.) se desvían significativamente del patrón general o esperado del resto del
+                    dataset. Es un caso atípico que no encaja bien en ninguno de los grupos principales.</p>
+                <p>Esto no significa que sea "mala", sino que es única o inusual en su composición, como una
+                    canción de Jazz extremadamente "party" o un tema que contenga niveles altos tanto de "happy" como de "sad".</p>
+            </div>
+            <div class="pca-card pca-2" style="background: #e6f9ff; border: 1px solid #aad8ff;">
+                <h3><span class="pca-icon">📈</span> Clasificación y Porcentaje</h3>
+                <p>Utilizamos el algoritmo Isolation Forest para identificar estas anomalías.
+                    Este método aísla los puntos que están lejos de la mayoría, clasificándolos con anomaly = -1.</p>
+                <p>El porcentaje de anomalía se calcula a partir del score de la distancia de aislamiento,
+                    escalado entre 0% (totalmente normal) y 100% (la más anómala de todas). Esto indica qué tan lejos
+                    está una canción del "corazón" del conjunto de datos.</p>
+            </div>
+        </div>
+    </div>
 </div>
 
     """
 
-    components.html(html_referencias, height=2600, scrolling=True)
+    components.html(html_referencias, height=3700, scrolling=False)
