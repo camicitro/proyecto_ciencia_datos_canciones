@@ -688,11 +688,27 @@ elif page == "Referencias":
 # OPCIÓN INTRODUCCION AL PROYECTO
 # ===============================
 elif page == "Introducción al proyecto":
-    st.title("MusicApp")
+    #st.title("MusicApp")
+    st.markdown(
+        """
+        <h1 style="
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-weight: 800;
+            background: linear-gradient(90deg, #ff6b6b, #5f9eff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: left;
+            font-size: 56px;
+        ">
+            🎵 MusicApp
+        </h1>
+        """,
+        unsafe_allow_html=True
+    )
     st.subheader("Proyecto Integrador de Ciencia de Datos - Grupo 8")
     st.text("Lucía Bürky, Camila Citro")
-    st.markdown("---")
 
+    st.markdown("---")
     html_intro = """
     <style>
         .container-intro {
@@ -896,7 +912,7 @@ elif page == "Exploración libre":
         .mark_bar()
         .encode(
             x=alt.X('genre_rosamerica:N', title='Género', sort='-y',
-                    axis=alt.Axis(labelAngle=-40)),
+                    axis=alt.Axis(labelAngle=-40, labelOverlap=False)),
             y=alt.Y('count:Q', title='Cantidad de canciones'),
             color=alt.Color('cluster:N', title='Cluster', scale=cluster_color_scale,
                             legend=alt.Legend(
