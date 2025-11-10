@@ -24,9 +24,7 @@ st.set_page_config(page_title="Explorador de Canciones", layout="wide")
 st.markdown(
     """
     <style>
-    [data-testid="stAppViewContainer"] {
-        background-color: #fff8f8;
-    }
+    
     h1, h2, h3 {
         color: #333333;
     }
@@ -157,57 +155,38 @@ if page == "Explorador de canciones":
         </div>
     </div>
     """
+    features = ["sad","happy","party","relaxed","acoustic","danceable","tonal","bright","instrumental"]
+    # Mostrar las tarjetas y capturar clics
     components.html(html_cards, height=230)
+    clicked_genre = st.button(f"🎼 Ver características de {selected_song['genre_rosamerica']}")
+
+    # Si el usuario hace clic en el botón, mostrar gráfico
+    if clicked_genre:
+        st.markdown("---")
+        st.subheader(f"Promedio de características del género: {selected_song['genre_rosamerica']}")
+
+        # Calcular promedio de las características del género actual
+        genre_df = df[df["genre_rosamerica"] == selected_song["genre_rosamerica"]]
+        genre_avg = genre_df[features].mean().reset_index()
+        genre_avg.columns = ["Característica", "Valor promedio"]
+
+        chart_genre_avg = (
+            alt.Chart(genre_avg)
+            .mark_bar(color="#6496E8")
+            .encode(
+                x=alt.X("Característica:N", sort="-y"),
+                y=alt.Y("Valor promedio:Q", scale=alt.Scale(domain=[0, 1])),
+                tooltip=["Característica", "Valor promedio"]
+            )
+            .properties(width=600, height=400,
+                        title=f"Promedio de características de canción - {selected_song['genre_rosamerica']}")
+        )
+
+        st.altair_chart(chart_genre_avg, use_container_width=True)
 
     st.markdown("---")
 
-    class PCAPipeline(BaseEstimator, TransformerMixin):
-        def __init__(self, n_components=2):
-            self.n_components = n_components
-            self.pipeline = Pipeline([
-                ("imputer", SimpleImputer(strategy="median")),
-                ("scaler", StandardScaler()),
-                ("pca", PCA(n_components=self.n_components))
-            ])
-        def fit(self, X, y=None):
-            self.pipeline.fit(X)
-            return self
-        def transform(self, X):
-            return self.pipeline.transform(X)
 
-    features = ["sad","happy","party","relaxed","acoustic","danceable","tonal","bright","instrumental"]
-
-    pca2 = PCAPipeline(n_components=2)
-    pca_2d = pca2.fit_transform(df[features])
-    df["pca_1_2d"] = pca_2d[:,0]
-    df["pca_2_2d"] = pca_2d[:,1]
-
-    color_legend = alt.Legend(
-        title="Tipo de cluster",
-        labelExpr="datum.value == 0 ? 'Cluster 0 (Movido)' : 'Cluster 1 (Tranquilo)'"
-    )
-    cluster_color_scale = alt.Scale(domain=[0, 1], range=['#E66E6E', '#6496E8'])
-
-    base = (
-        alt.Chart(df)
-        .mark_circle()
-        .encode(
-            x=alt.X('pca_1_2d', title='Componente principal 1 (tranquilidad)'),
-            y=alt.Y('pca_2_2d', title='Componente principal 2 (positividad emocional)'),
-            color=alt.Color('cluster:N', legend=color_legend, scale=cluster_color_scale),
-            tooltip=["title", "artist_name", "genre_rosamerica"]
-        )
-        .properties(width=450, height=400)
-        .interactive()
-    )
-
-    highlight = (
-        alt.Chart(df[df["track_mbid"] == selected_song["track_mbid"]])
-        .mark_circle(size=200, color="#f5b342", stroke="black", strokeWidth=1)
-        .encode(x='pca_1_2d', y='pca_2_2d', tooltip=["title", "artist_name", "genre_rosamerica"])
-    )
-
-    chart_pca = (base + highlight).interactive()
 
     song_features = pd.DataFrame({
         "feature": features,
@@ -225,13 +204,11 @@ if page == "Explorador de canciones":
         .properties(width=450, height=400)
     )
 
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("Clusters con PCA")
-        st.altair_chart(chart_pca, use_container_width=True)
-    with col2:
-        st.subheader("Características de la canción")
-        st.altair_chart(chart_features, use_container_width=True)
+    # col1, col2 = st.columns(2)
+   
+    # with col2:
+    st.subheader("Características de la canción")
+    st.altair_chart(chart_features, use_container_width=True)
 
     st.markdown("---")
     st.subheader("Canciones similares")
@@ -988,4 +965,3 @@ elif page == "Exploración libre":
 
     st.markdown("---")
     st.subheader("Visualización 4: ???")
-    # (pegá el tercer gráfico, chart_bar_features)
