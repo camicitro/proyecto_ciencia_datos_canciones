@@ -906,7 +906,7 @@ elif page == "Exploración libre":
         .size()
         .reset_index(name='count')
     )
-
+ 
     chart_genre_cluster = (
         alt.Chart(genre_cluster_counts)
         .mark_bar()
