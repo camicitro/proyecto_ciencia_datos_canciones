@@ -74,13 +74,14 @@ st.markdown(
 st.sidebar.title("🎧 Menú")
 page = st.sidebar.radio("", ["Introducción al proyecto","Explorador de canciones", "Exploración libre","Referencias"])
 
-# ========================
-# OPCIÓN 1: EXPLORADOR
-# ========================
+
+# ==============================
+# OPCIÓN EXPLORADOR DE CANCIONES
+# ==============================
 if page == "Explorador de canciones":
     st.title("🎵 Explorador de Canciones")
 
-    df = pd.read_csv("songs_final_8_COMPLETO.csv")
+    df = pd.read_csv("songs_final_cortito_para_pruebas.csv")
 
     if 'display_name' not in df.columns:
         df['display_name'] = df['title'] + " - " + df['artist_name']
@@ -158,44 +159,179 @@ if page == "Explorador de canciones":
     features = ["sad","happy","party","relaxed","acoustic","danceable","tonal","bright","instrumental"]
     # Mostrar las tarjetas y capturar clics
     components.html(html_cards, height=230)
-    clicked_genre = st.button(f"🎼 Ver características de {selected_song['genre_rosamerica']}")
+    
+    # Botones para ver las caracteristicas de cada cosa
+    col1, col2, col3 = st.columns(3, gap="medium")
 
-    # Si el usuario hace clic en el botón, mostrar gráfico
+    st.markdown("""
+    <style>
+    div[data-testid="stButton"] {
+        display: flex;
+        justify-content: center;
+    }
+    div[data-testid="stButton"] > button {
+        min-width: 80%;
+        max-width: 100%;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    # Botón GÉNERO 
+    with col1:
+        inner_left, inner_center, inner_right = st.columns([1, 2, 1])
+        with inner_center:
+            clicked_genre = st.button(f"Ver características", key="genre_button")
+
+    # Botón CLUSTER 
+    with col2:
+        inner_left, inner_center, inner_right = st.columns([1, 2, 1])
+        with inner_center:
+            clicked_cluster = st.button(f"Ver características", key="cluster_button")
+
+    # Botón ANOMALÍA 
+    with col3:
+        if selected_song["anomaly"] == -1:
+            inner_left, inner_center, inner_right = st.columns([1, 2, 1])
+            with inner_center:
+                clicked_anomaly = st.button("Ver detalles", key="anomaly_button")
+            if clicked_anomaly:
+                st.session_state.show_anomaly_chart = not st.session_state.get("show_anomaly_chart", False)
+        else:
+            st.session_state.show_anomaly_chart = False
+
+    # Alternar gráficos 
     if clicked_genre:
+        st.session_state.show_genre_chart = not st.session_state.get("show_genre_chart", False)
+    if clicked_cluster:
+        st.session_state.show_cluster_chart = not st.session_state.get("show_cluster_chart", False)
+    
+    # Mostrar gráficos 
+    if st.session_state.get("show_genre_chart", False):
         st.markdown("---")
         st.subheader(f"Promedio de características del género: {selected_song['genre_rosamerica']}")
 
-        # Calcular promedio de las características del género actual
         genre_df = df[df["genre_rosamerica"] == selected_song["genre_rosamerica"]]
         genre_avg = genre_df[features].mean().reset_index()
         genre_avg.columns = ["Característica", "Valor promedio"]
 
+        color = "#E66E6E" if cluster == 0 else "#6496E8"
+
         chart_genre_avg = (
             alt.Chart(genre_avg)
-            .mark_bar(color="#6496E8")
+            .mark_bar(color=color, size=25)
             .encode(
-                x=alt.X("Característica:N", sort="-y"),
-                y=alt.Y("Valor promedio:Q", scale=alt.Scale(domain=[0, 1])),
+                y=alt.Y("Característica:N", sort="-x", title=""),
+                x=alt.X("Valor promedio:Q", scale=alt.Scale(domain=[0, 1]), title="Valor promedio"),
                 tooltip=["Característica", "Valor promedio"]
             )
             .properties(width=600, height=400,
-                        title=f"Promedio de características de canción - {selected_song['genre_rosamerica']}")
+                        title=f"Promedio de características musicales - {selected_song['genre_rosamerica']}")
+        )
+        st.altair_chart(chart_genre_avg, use_container_width=True)
+
+    if st.session_state.get("show_cluster_chart", False):
+        st.markdown("---")
+        st.subheader(f"Promedio de características del cluster {cluster_label}")
+
+        cluster_df = df[df["cluster"] == cluster]
+        cluster_avg = cluster_df[features].mean().reset_index()
+        cluster_avg.columns = ["Característica", "Valor promedio"]
+
+        color = "#E66E6E" if cluster == 0 else "#6496E8"
+
+        chart_cluster_avg = (
+            alt.Chart(cluster_avg)
+            .mark_bar(color=color, size=25)
+            .encode(
+                y=alt.Y("Característica:N", sort="-x", title=""),
+                x=alt.X("Valor promedio:Q", scale=alt.Scale(domain=[0, 1]), title="Valor promedio"),
+                tooltip=["Característica", "Valor promedio"]
+            )
+            .properties(width=600, height=400,
+                        title=f"Promedio de características musicales - Cluster {cluster_label}")
+        )
+        st.altair_chart(chart_cluster_avg, use_container_width=True)
+
+    if st.session_state.get("show_anomaly_chart", False):
+        st.markdown("---")
+        st.subheader("Características con combinaciones inusuales")
+
+        # Calcular correlaciones globales
+        corr = df[features].corr()
+
+        # Valores de la canción seleccionada
+        song_vals = selected_song[features]
+
+        # Detectar pares conflictivos: correlación negativa + ambos valores altos
+        pairs = []
+        conflict_features = set()
+
+        for i in range(len(features)):
+            for j in range(i+1, len(features)):
+                f1, f2 = features[i], features[j]
+                corr_val = corr.loc[f1, f2]
+                if corr_val < -0.4 and song_vals[f1] > 0.6 and song_vals[f2] > 0.6:
+                    pairs.append((f1, f2, corr_val))
+                    conflict_features.update([f1, f2])
+
+        if not conflict_features:
+            st.info("Esta canción no presenta combinaciones conflictivas destacadas.")
+        else:
+            conflict_features = list(conflict_features)
+
+        # === Gráfico de barras de características conflictivas ===
+        conflict_df = pd.DataFrame({
+            "Característica": conflict_features,
+            "Valor": [selected_song[f] for f in conflict_features]
+        })
+
+        chart_conflicts = (
+            alt.Chart(conflict_df)
+            .mark_bar(size=40, color="#f5b342")
+            .encode(
+                x=alt.X("Valor:Q", scale=alt.Scale(domain=[0, 1]), title="Valor de la característica"),
+                y=alt.Y("Característica:N", sort="-x", title=""),
+                tooltip=["Característica", "Valor"]
+            )
+            .properties(
+                width=500,
+                height=350,
+                title=alt.TitleParams(
+                    text="Características que contribuyen a la anomalía",
+                    anchor="middle",
+                    fontSize=18,
+                    fontWeight=500
+                )
+            )
         )
 
-        st.altair_chart(chart_genre_avg, use_container_width=True)
+        st.altair_chart(chart_conflicts, use_container_width=True)
+
+        st.markdown(
+            """
+            <div style="text-align:center; font-size:15px; color:gray; margin-top:-10px;">
+                Estas características presentan valores altos simultáneamente (generando conflicto),
+                aunque suelen estar negativamente correlacionadas.<br>
+                Esa combinación poco común hace que la canción se considere <strong>inusual</strong>.
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+
+
 
     st.markdown("---")
 
-
-
+    # Para caracteristicas de la cancion
     song_features = pd.DataFrame({
         "feature": features,
         "value": [selected_song[f] for f in features]
     })
-    
+    color = "#E66E6E" if cluster == 0 else "#6496E8"
+
     chart_features = (
         alt.Chart(song_features)
-        .mark_bar(size=25, color="#f5b342")
+        .mark_bar(size=25, color=color)
         .encode(
             x=alt.X("value:Q", title="Valor", scale=alt.Scale(domain=[0, 1])),
             y=alt.Y("feature:N", sort="-x", title=""),
@@ -204,9 +340,6 @@ if page == "Explorador de canciones":
         .properties(width=450, height=400)
     )
 
-    # col1, col2 = st.columns(2)
-   
-    # with col2:
     st.subheader("Características de la canción")
     st.altair_chart(chart_features, use_container_width=True)
 
@@ -226,7 +359,7 @@ if page == "Explorador de canciones":
     st.dataframe(similares_knn, use_container_width=True)
 
 # ========================
-# OPCIÓN 2: REFERENCIAS
+# OPCIÓN REFERENCIAS
 # ========================
 elif page == "Referencias":
     st.title("📘 Referencias y análisis complementario")
@@ -551,13 +684,31 @@ elif page == "Referencias":
 
     components.html(html_referencias, height=3700, scrolling=False)
 
-
+# ===============================
+# OPCIÓN INTRODUCCION AL PROYECTO
+# ===============================
 elif page == "Introducción al proyecto":
-    st.title("Proyecto Integrador de Ciencia de Datos - Grupo 8")
-    st.subheader("poner un titulo tipo el nombre del proyecto")
+    #st.title("MusicApp")
+    st.markdown(
+        """
+        <h1 style="
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-weight: 800;
+            background: linear-gradient(90deg, #ff6b6b, #5f9eff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: left;
+            font-size: 56px;
+        ">
+            🎵 MusicApp
+        </h1>
+        """,
+        unsafe_allow_html=True
+    )
+    st.subheader("Proyecto Integrador de Ciencia de Datos - Grupo 8")
     st.text("Lucía Bürky, Camila Citro")
-    st.markdown("---")
 
+    st.markdown("---")
     html_intro = """
     <style>
         .container-intro {
@@ -635,19 +786,20 @@ elif page == "Introducción al proyecto":
     """
     components.html(html_intro, height=1500, scrolling=True)
 
+# ========================
+# OPCIÓN EXPLORACIÓN LIBRE
+# ========================
 elif page == "Exploración libre":
 
     st.title("📈 Análisis y exploración libre de canciones")
     st.markdown("Explorá los distintos gráficos interactivos creados durante el análisis de datos.")
     st.markdown("---")
 
-    df = pd.read_csv("songs_final_8_COMPLETO.csv")
+    df = pd.read_csv("songs_final_cortito_para_pruebas.csv")
     df["display_name"] = df["title"] + " - " + df["artist_name"]
     df_clean = df.dropna(subset=['track_mbid', 'cluster'])
 
     features = ["sad","happy","party","relaxed","acoustic","danceable","tonal","bright","instrumental"]
-
-    
 
     # Gráfico 1: Clusters y características
     st.subheader("Visualización 1: Clusters y características")
@@ -699,7 +851,7 @@ elif page == "Exploración libre":
     )
 
     # Gráfico combinado
-    chart_pca = scatter + highlight
+    chart_pca = scatter + highlight 
 
     # Características de la canción seleccionada
     song_features = pd.DataFrame({
@@ -731,6 +883,15 @@ elif page == "Exploración libre":
     col1, col2 = st.columns([2, 1])
     with col1:
         st.altair_chart(chart_pca, use_container_width=True)
+        st.markdown(
+            """
+            <div style="text-align:center; font-size:14px; color:gray; margin-top:-15px;">
+                <strong>Eje X:</strong> hacia la derecha → mayor <em>tranquilidad</em> |
+                <strong>Eje Y:</strong> hacia arriba → mayor <em>positividad emocional</em>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
     with col2:
         st.altair_chart(chart_features, use_container_width=True)
     
@@ -751,7 +912,7 @@ elif page == "Exploración libre":
         .mark_bar()
         .encode(
             x=alt.X('genre_rosamerica:N', title='Género', sort='-y',
-                    axis=alt.Axis(labelAngle=-40)),
+                    axis=alt.Axis(labelAngle=-40, labelOverlap=False)),
             y=alt.Y('count:Q', title='Cantidad de canciones'),
             color=alt.Color('cluster:N', title='Cluster', scale=cluster_color_scale,
                             legend=alt.Legend(
@@ -818,9 +979,7 @@ elif page == "Exploración libre":
     st.subheader("Visualización 3: Canciones anómalas")
     st.markdown("Explorá las canciones más inusuales según sus características musicales detectadas con *Isolation Forest*.")
 
-    # ===============================
-    # 1️⃣ Detección de anomalías
-    # ===============================
+    # Detección de anomalías
     X = df_clean[features]
     iso_forest = IsolationForest(contamination=0.02, random_state=42)
     predictions = iso_forest.fit_predict(X)
@@ -832,9 +991,7 @@ elif page == "Exploración libre":
     normalized_scores = scaler.fit_transform(inverted_scores)
     df_clean['porcentaje_anomalia'] = normalized_scores
 
-    # ===============================
-    # 2️⃣ Filtro por género
-    # ===============================
+    # Filtro por género
     genres = ["Todos"] + sorted(df_clean["genre_rosamerica"].dropna().unique().tolist())
     genre_selected = st.selectbox("🎵 Filtrar por género:", genres, index=0)
 
@@ -843,9 +1000,7 @@ elif page == "Exploración libre":
     else:
         df_filtered = df_clean[df_clean["genre_rosamerica"] == genre_selected]
 
-    # ===============================
-    # 3️⃣ Selección de canción anómala
-    # ===============================
+    # Selección de canción anómala
     df_anomalas = (
         df_filtered[df_filtered["anomaly"] == -1]
         .sort_values(by="porcentaje_anomalia", ascending=False)
@@ -857,9 +1012,7 @@ elif page == "Exploración libre":
 
     selected_row = df_anomalas[df_anomalas["title"] + " - " + df_anomalas["artist_name"] == selected_song].iloc[0]
 
-    # ===============================
-    # 4️⃣ Preparación de gráficos
-    # ===============================
+    # Preparación de gráficos
     cluster_color_scale = alt.Scale(domain=[0, 1], range=["#E66E6E", "#6496E8"])
 
     color_scale = alt.Scale(domain=[df_anomalas["porcentaje_anomalia"].min(), df_anomalas["porcentaje_anomalia"].max()],
@@ -951,17 +1104,253 @@ elif page == "Exploración libre":
         .properties(width=300, height=400, title="Características de la canción seleccionada")
     )
 
-    # ===============================
-    # 5️⃣ Mostrar en Streamlit
-    # ===============================
+
     col1, col2 = st.columns([2, 1])
     with col1:
         st.altair_chart(scatter_anomalies, use_container_width=True)
+        st.markdown(
+            """
+            <div style="text-align:center; font-size:14px; color:gray; margin-top:-15px;">
+                <strong>Eje X:</strong> hacia la derecha → mayor <em>tranquilidad</em> |
+                <strong>Eje Y:</strong> hacia arriba → mayor <em>positividad emocional</em>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
     with col2:
         st.altair_chart(chart_features, use_container_width=True)
+
+    st.markdown("---")
+    st.subheader("Visualización 4: Distribución PCA por género")
+
+    genre_colors = {
+        "Pop": "#F9C74F",
+        "Rock": "#F17634",
+        "Rhythmic": "#60DF00",
+        "Dance": "#18D8F1",
+        "Classic": "#056A96",
+        "Jazz": "#F88DBF",
+        "Hip-Hop": "#E63535"
+    }
         
+    chart_pca_genre = (
+        alt.Chart(df_clean)
+        .mark_circle(size=40)
+        .encode(
+            x=alt.X("pca_1_2d", title="Componente principal 1 (Tranquilidad)"),
+            y=alt.Y("pca_2_2d", title="Componente principal 2 (Positividad emocional)"),
+            #color=alt.Color("genre_rosamerica:N", legend=alt.Legend(title="Género")),
+            color=alt.Color(
+                "genre_rosamerica:N",
+                legend=alt.Legend(title="Género"),
+                scale=alt.Scale(domain=list(genre_colors.keys()), range=list(genre_colors.values()))
+            ),
+            tooltip=["title", "artist_name", "genre_rosamerica"]
+        )
+        .properties(width=700, height=500, title="Proyección PCA separada por género")
+        .interactive()
+    )
+
+    st.altair_chart(chart_pca_genre, use_container_width=True)
+    st.markdown(
+            """
+            <div style="text-align:center; font-size:14px; color:gray; margin-top:-15px;">
+                <strong>Eje X:</strong> hacia la derecha → mayor <em>tranquilidad</em> |
+                <strong>Eje Y:</strong> hacia arriba → mayor <em>positividad emocional</em>
+            </div>
+            """,
+            unsafe_allow_html=True
+    )
+
+    st.markdown("---")
+    st.subheader("Visualización 5: Gráfico de radar de características por cluster")
+
+    import plotly.graph_objects as go
+    features = ["party", "danceable", "happy", "relaxed","acoustic", "sad", "tonal", "instrumental", "bright" ]
+
+    cluster_means = df_clean.groupby("cluster")[features].mean().reset_index()
+
+    fig = go.Figure()
+
+    colors = {0: "#E66E6E", 1: "#6496E8"} 
+
+    for i, row in cluster_means.iterrows():
+        color = colors[int(row["cluster"])]
+        fig.add_trace(go.Scatterpolar(
+            r=row[features].values,
+            theta=features,
+            fill='toself',
+            name=f"{'Movido' if row['cluster']==0 else 'Tranquilo'}",
+            line=dict(color=color, width=2),
+        ))
+
+    fig.update_layout(
+        title=dict(
+            text="Comparación de características musicales por cluster",
+            x=0.5, 
+            xanchor="center",
+            font=dict(size=18, family="Arial", color="#333", weight=400)
+        ),
+        polar=dict(radialaxis=dict(visible=True, range=[0,1])),
+        showlegend=True,
+        height=500,
+        width=600
+    )
+    st.plotly_chart(fig, use_container_width=True)
+    
+
+    st.markdown("---")
+    st.subheader("Visualización 6: Distribución de géneros y características promedio por género")
+
+    # --- Datos base ---
+    genre_counts = df_clean["genre_rosamerica"].value_counts(normalize=False).reset_index()
+    genre_counts.columns = ["Género", "Cantidad"]
+
+    # --- Calcular porcentajes ---
+    total_songs = genre_counts["Cantidad"].sum()
+    genre_counts["Porcentaje"] = genre_counts["Cantidad"] / total_songs
+
+    # Paleta de colores consistente
+    genre_colors = {
+        "Pop": "#F9C74F",
+        "Rock": "#F17634",
+        "Rhythmic": "#60DF00",
+        "Dance": "#18D8F1",
+        "Classic": "#056A96",
+        "Jazz": "#F88DBF",
+        "Hip-Hop": "#E63535"
+    }
+
+    genres_list = ["Todos"] + sorted(df_clean["genre_rosamerica"].dropna().unique().tolist())
+    selected_genre = st.selectbox("Elegí un género para analizar sus características:", genres_list, index=0)
+
+    # --- Pie chart base ---
+    pie = (
+        alt.Chart(genre_counts)
+        .mark_arc()
+        .encode(
+            theta=alt.Theta("Cantidad:Q"),
+            order=alt.Order("Porcentaje:Q", sort="descending"),
+            color=alt.Color(
+                "Género:N",
+                scale=alt.Scale(domain=list(genre_colors.keys()), range=list(genre_colors.values())),
+                legend=alt.Legend(title="Género")
+            ),
+            opacity=alt.condition(
+                alt.datum.Género == selected_genre,
+                alt.value(1.0),
+                alt.value(0.85) if selected_genre != "Todos" else alt.value(1.0)
+            ),
+            stroke=alt.condition(
+                alt.datum.Género == selected_genre,
+                alt.value("black"),
+                alt.value(None)  # sin borde para los demás ni para la leyenda
+            ),
+            strokeWidth=alt.condition(
+                alt.datum.Género == selected_genre,
+                alt.value(3),
+                alt.value(0)
+            ),
+            tooltip=["Género", "Cantidad", alt.Tooltip("Porcentaje:Q", format=".1%")]
+        )
+        .properties(
+            width=400,
+            height=400,
+            title=alt.TitleParams(
+                text="Distribución de géneros musicales",
+                anchor="middle",
+                fontSize=18,
+                fontWeight=500
+            )
+        )
+    )
+
+    pie_chart = pie 
+
+    # --- Gráfico de barras o mensaje según selección ---
+    if selected_genre != "Todos":
+        genre_avg = (
+            df_clean[df_clean["genre_rosamerica"] == selected_genre][features]
+            .mean()
+            .reset_index()
+        )
+        genre_avg.columns = ["Característica", "Valor promedio"]
+
+        chart_genre_avg = (
+            alt.Chart(genre_avg)
+            .mark_bar(size=30, color=genre_colors.get(selected_genre, "#888"))
+            .encode(
+                y=alt.Y("Característica:N", sort="-x", title=""),
+                x=alt.X("Valor promedio:Q", scale=alt.Scale(domain=[0, 1]), title="Valor promedio"),
+                tooltip=["Característica", "Valor promedio"]
+            )
+            .properties(
+                width=450,
+                height=400,
+                title=alt.TitleParams(
+                    text=f"Características promedio - {selected_genre}",
+                    anchor="middle",
+                    fontSize=18,
+                    fontWeight=500
+                )
+            )
+        )
+    else:
+        msg_html = """
+        <div style="display:flex; align-items:center; justify-content:center; height:100%;">
+        <div style="text-align:center; color:gray; padding:18px; border-radius:8px;">
+            <strong>Seleccioná un género</strong> en el desplegable para ver aquí sus características promedio.
+        </div>
+        </div>
+        """
+
+    # --- Mostrar lado a lado ---
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        st.altair_chart(pie_chart, use_container_width=True)
+    with col2:
+        if selected_genre != "Todos":
+            st.altair_chart(chart_genre_avg, use_container_width=True)
+        else:
+            st.markdown(msg_html, unsafe_allow_html=True)
 
 
 
     st.markdown("---")
-    st.subheader("Visualización 4: ???")
+    st.subheader("Visualización 7: Comparación de una característica entre géneros")
+
+    selected_feature = st.selectbox(
+        "Elegí una característica para comparar entre géneros:",
+        features,
+        index=features.index("happy") if "happy" in features else 0
+    )
+
+    # Calcular promedios por género
+    feature_by_genre = (
+        df_clean.groupby("genre_rosamerica")[selected_feature]
+        .mean()
+        .reset_index()
+        .sort_values(by=selected_feature, ascending=False)
+    )
+
+    chart_feature_genre = (
+        alt.Chart(feature_by_genre)
+        .mark_bar(size=25)
+        .encode(
+            x=alt.X(selected_feature + ":Q", title=f"Promedio de '{selected_feature}'", scale=alt.Scale(domain=[0, 1])),
+            y=alt.Y("genre_rosamerica:N", title="Género", sort="-x"),
+            tooltip=["genre_rosamerica", selected_feature]
+        )
+        .properties(
+            width=600,
+            height=400,
+            title=alt.TitleParams(
+                text=f"Comparación de la característica '{selected_feature}' entre géneros",
+                anchor="middle",
+                fontSize=18,
+                fontWeight=500
+            )
+        )
+    )
+
+    st.altair_chart(chart_feature_genre, use_container_width=True)
