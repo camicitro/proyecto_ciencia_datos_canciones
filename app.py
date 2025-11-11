@@ -993,7 +993,7 @@ elif page == "Exploración libre":
 
     # Filtro por género
     genres = ["Todos"] + sorted(df_clean["genre_rosamerica"].dropna().unique().tolist())
-    genre_selected = st.selectbox("🎵 Filtrar por género:", genres, index=0)
+    genre_selected = st.selectbox("Filtrar por género:", genres, index=0)
 
     if genre_selected == "Todos":
         df_filtered = df_clean.copy()
@@ -1008,7 +1008,7 @@ elif page == "Exploración libre":
     )
 
     options_anomalas = df_anomalas["title"] + " - " + df_anomalas["artist_name"]
-    selected_song = st.selectbox("🎧 Elegí una canción anómala:", options_anomalas)
+    selected_song = st.selectbox("Elegí una canción anómala:", options_anomalas)
 
     selected_row = df_anomalas[df_anomalas["title"] + " - " + df_anomalas["artist_name"] == selected_song].iloc[0]
 
