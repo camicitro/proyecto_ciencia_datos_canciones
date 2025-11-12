@@ -362,7 +362,7 @@ if page == "Explorador de canciones":
 # OPCIÓN REFERENCIAS
 # ========================
 elif page == "Referencias":
-    st.title("📘 Referencias y análisis complementario")
+    st.title("📘 Referencias")
     st.markdown("---")
 
     html_referencias = """
@@ -993,7 +993,7 @@ elif page == "Exploración libre":
 
     # Filtro por género
     genres = ["Todos"] + sorted(df_clean["genre_rosamerica"].dropna().unique().tolist())
-    genre_selected = st.selectbox("🎵 Filtrar por género:", genres, index=0)
+    genre_selected = st.selectbox("Filtrar por género:", genres, index=0, key="genre_filter_v3")
 
     if genre_selected == "Todos":
         df_filtered = df_clean.copy()
@@ -1008,7 +1008,7 @@ elif page == "Exploración libre":
     )
 
     options_anomalas = df_anomalas["title"] + " - " + df_anomalas["artist_name"]
-    selected_song = st.selectbox("🎧 Elegí una canción anómala:", options_anomalas)
+    selected_song = st.selectbox("Elegí una canción anómala:", options_anomalas, key="song_filter_v3")
 
     selected_row = df_anomalas[df_anomalas["title"] + " - " + df_anomalas["artist_name"] == selected_song].iloc[0]
 
@@ -1133,8 +1133,18 @@ elif page == "Exploración libre":
         "Hip-Hop": "#E63535"
     }
         
+    genres_4 = ["Todos"] + sorted(df_clean["genre_rosamerica"].dropna().unique().tolist())
+    genre_selected_4 = st.selectbox("Filtrar por género:", genres_4, index=0, key="genre_filter_v4")
+
+    # --- Filtrado dinámico ---
+    if genre_selected_4 != "Todos":
+        df_filtered = df_clean[df_clean["genre_rosamerica"] == genre_selected_4]
+    else:
+        df_filtered = df_clean
+
+
     chart_pca_genre = (
-        alt.Chart(df_clean)
+        alt.Chart(df_filtered)
         .mark_circle(size=40)
         .encode(
             x=alt.X("pca_1_2d", title="Componente principal 1 (Tranquilidad)"),
@@ -1147,7 +1157,13 @@ elif page == "Exploración libre":
             ),
             tooltip=["title", "artist_name", "genre_rosamerica"]
         )
-        .properties(width=700, height=500, title="Proyección PCA separada por género")
+        .properties(
+            width=700, 
+            height=500, 
+            title=(
+                f"Proyección PCA - {genre_selected_4 if genre_selected_4 != 'Todos' else 'Todos los géneros'}"
+            )
+        )
         .interactive()
     )
 
