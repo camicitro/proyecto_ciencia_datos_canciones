@@ -92,7 +92,21 @@ El archivo donde realizamos dichos gráficos es "_cuarta_entrega.ipynb_". Para l
 Luego desarrollamos la aplicación de Streamlit, que se encuentra en el archivo "_app.py_". Además, desplegamos dicha aplicación: https://cancionesapp-pn7j277szrdnzyddqkn8en.streamlit.app/
 Dentro de la misma, en la pestaña de introducción al proyecto se explican brevemente las etapas por las cuales pasamos. Además, en la pestaña de referencias se explica cada concepto para un mejor entendimiento.
 
-
-
-
-
+## Herramientas utilizadas
+<div align="center">
+  <div align="center">
+    <img width="200" height="115" alt="image" src="https://github.com/user-attachments/assets/d72dd099-c153-4d47-bc66-ffd6224338a5" />
+    <p>Airflow (con Astro CLI)</p>
+  </div>
+  <div align="center">
+     <img width="75" height="75" alt="image" src="https://github.com/user-attachments/assets/e0dbfdfd-bbf5-4521-8f50-9ab353fbdfd1" />
+    <img width="75" height="75" alt="image" src="https://github.com/user-attachments/assets/fa0303da-77a9-45cf-9417-58c5257d3078" />
+    <img width="150" height="75" alt="image" src="https://github.com/user-attachments/assets/384b0b00-11f7-4151-814d-9d4712f454d2" />
+    <img width="75" height="75" alt="image" src="https://github.com/user-attachments/assets/3ec740df-9f96-4d6f-9f02-2e8a8426b3e1" />
+    <p>Python, Pandas, Scikit-learn, Altair</p>
+  </div>
+ <div align="center">
+    <img width="190" height="100" alt="image" src="https://github.com/user-attachments/assets/5dc60860-ce13-49d9-ad95-c4674b2d8741" />
+    <p>Streamlit y Streamlit Cloud</p>
+  </div>
+</div>
